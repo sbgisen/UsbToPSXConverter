@@ -15,9 +15,9 @@ Web      :  http://www.circuitsathome.com
 e-mail   :  support@circuitsathome.com
  */
 
-#include "hidescriptorparser3.h"
+#include "JoystickReportParser.h"
 
-uint8_t ReportDescParser3::ParseItem(uint8_t **pp, uint16_t *pcntdn) {
+uint8_t JoystickDescParser::ParseItem(uint8_t **pp, uint16_t *pcntdn) {
         //uint8_t ret = enErrorSuccess;
 
         switch(itemParseState) {
@@ -112,7 +112,7 @@ uint8_t ReportDescParser3::ParseItem(uint8_t **pp, uint16_t *pcntdn) {
         return enErrorSuccess;
 }
 
-void ReportDescParser3::OnInputItem(uint8_t itm) {
+void JoystickDescParser::OnInputItem(uint8_t itm) {
         uint8_t byte_offset = (totalSize >> 3); // calculate offset to the next unhandled byte i = (int)(totalCount / 8);
         uint8_t *p = pBuf + byte_offset; // current byte pointer
 
@@ -192,12 +192,12 @@ void ReportDescParser3::OnInputItem(uint8_t itm) {
         E_Notify(PSTR("\r\n"), 0x80);
 }
 
-ReportDescParser3::EventData ReportDescParser3::getEventData(){
+JoystickDescParser::EventData JoystickDescParser::getEventData(){
         return eventData;
 }
 
 template<typename T>
-void ReportDescParser3::ZeroMemory(uint8_t len, T *buf) {
+void JoystickDescParser::ZeroMemory(uint8_t len, T *buf) {
         for(uint8_t i = 0; i < len; i++)
                 buf[i] = 0;
 }
@@ -205,7 +205,7 @@ void ReportDescParser3::ZeroMemory(uint8_t len, T *buf) {
 void JoystickReportParser::Parse(USBHID *hid, bool is_rpt_id __attribute__((unused)), uint8_t len, uint8_t *buf) {
         bool match = true;
 
-        ReportDescParser3 prs(len, buf);
+        JoystickDescParser prs(len, buf);
 
         uint8_t ret = hid->GetReportDescr(0, &prs);
 

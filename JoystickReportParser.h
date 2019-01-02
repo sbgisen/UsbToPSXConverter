@@ -14,12 +14,12 @@ Circuits At Home, LTD
 Web      :  http://www.circuitsathome.com
 e-mail   :  support@circuitsathome.com
  */
-#if !defined(__HIDDESCRIPTORPARSER3_H__)
-#define __HIDDESCRIPTORPARSER3_H__
+#if !defined(__JOYSTICKREPORTPARSER_H__)
+#define __JOYSTICKREPORTPARSER_H__
 
 #include "hidescriptorparser.h"
 
-class ReportDescParser3 : public ReportDescParserBase {
+class JoystickDescParser : public ReportDescParserBase {
 public:
         struct EventData{
                 struct Axis{
@@ -58,7 +58,7 @@ protected:
 public:
         EventData getEventData();
 
-        ReportDescParser3(uint16_t len, uint8_t *pbuf) :
+        JoystickDescParser(uint16_t len, uint8_t *pbuf) :
         ReportDescParserBase(), usageIndex(0), rptId(0), useMin(0), useMax(0), fieldCount(0), pBuf(pbuf), bLen(len), bits_of_byte(8) {
         };
 };
@@ -69,7 +69,7 @@ public:
         virtual void Parse(USBHID *hid, bool is_rpt_id, uint8_t len, uint8_t *buf);
 
 private:        
-        ReportDescParser3::EventData eventData;
+        JoystickDescParser::EventData eventData;
 };
 
 #endif // __HIDDESCRIPTORPARSER_H__

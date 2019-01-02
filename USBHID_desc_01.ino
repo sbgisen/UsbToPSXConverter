@@ -9,7 +9,7 @@
 #endif
 #include <SPI.h>
 
-#include "hidescriptorparser3.h"
+#include "JoystickReportParser.h"
 
 USB Usb;
 //USBHub Hub(&Usb);
