@@ -196,6 +196,13 @@ JoystickDescParser::EventData JoystickDescParser::getEventData(){
         return eventData;
 }
 
+void JoystickDescParser::SetUsagePage(uint16_t page)
+{
+        ReportDescParserBase::SetUsagePage(page);
+
+        usagePage = page;
+}
+
 template<typename T>
 void JoystickDescParser::ZeroMemory(uint8_t len, T *buf) {
         for(uint8_t i = 0; i < len; i++)

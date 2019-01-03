@@ -38,6 +38,7 @@ private:
         uint8_t usage[usageBufferSize] = {0}; 
         uint8_t usageIndex;
 
+        uint16_t usagePage;
         uint8_t rptId; // Report ID
         uint8_t useMin; // Usage Minimum
         uint8_t useMax; // Usage Maximum
@@ -52,6 +53,8 @@ private:
 protected:
         // Method should be defined here if virtual.
         virtual uint8_t ParseItem(uint8_t **pp, uint16_t *pcntdn);
+
+        void SetUsagePage(uint16_t page);
 
         template<typename T>
         void ZeroMemory(uint8_t len, T *buf);
