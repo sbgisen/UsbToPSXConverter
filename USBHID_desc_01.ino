@@ -11,13 +11,17 @@
 #define MISO_PIN GPIO_PIN_14
 #define SCK_PIN GPIO_PIN_13
 
-#define NBYTES 256
+#define ACK_PIN GPIO_PIN_1
 
+#define NOP asm("nop")
+#define NOP10 asm("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;")
 
 static void GPIO_Init(void);
 static void SPI_Master_Init(void);
 static void SPI_Slave_Init(void);
 static void SPI_isr_func(void);
+static void PSX_ACK(void);
+static void delay_us(uint8_t us);
 
 template <typename T>
 static bool getBitData(T data, uint8_t i);
@@ -50,13 +54,9 @@ union PSX_EventData {
 SPI_HandleTypeDef SPI_Handle;
 SPI_HandleTypeDef SPI_Slave_Handle;
 
-int spi_flag = 0;
-byte rx_buffer[NBYTES];
-
 USB Usb;
 HIDUniversal Hid(&Usb);
 JoystickReportParser parser;
-
 
 void setup()
 {
@@ -154,12 +154,13 @@ void GPIO_Init(void)
     __GPIOB_CLK_ENABLE();
     __GPIOC_CLK_ENABLE();
 
-    // Initialize user button
     GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Pin = GPIO_PIN_13;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pin = ACK_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    HAL_GPIO_WritePin(GPIOB, ACK_PIN, GPIO_PIN_SET);
 }
 
 // SPI1 init function
@@ -178,7 +179,7 @@ void SPI_Slave_Init(void)
     SPI_Slave_Handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
     SPI_Slave_Handle.Init.CLKPhase = SPI_PHASE_2EDGE;
     SPI_Slave_Handle.Init.NSS = SPI_NSS_SOFT;
-    SPI_Slave_Handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    SPI_Slave_Handle.Init.FirstBit = SPI_FIRSTBIT_LSB;
     SPI_Slave_Handle.Init.TIMode = SPI_TIMODE_DISABLED;
     SPI_Slave_Handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLED;
     SPI_Slave_Handle.Init.CRCPolynomial = 10;
@@ -203,6 +204,10 @@ void SPI_Slave_Init(void)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     // SSの設定
+    GPIO_InitStruct.Pin = GPIO_PIN_13;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Alternate function ドレイン
+    GPIO_InitStruct.Pull = GPIO_NOPULL;      // プルアップ
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     stm32_interrupt_enable(GPIOA, GPIO_PIN_13, SPI_isr_func, GPIO_MODE_IT_FALLING);
 }
 
@@ -210,19 +215,40 @@ void SPI_isr_func()
 {
     // ココに処理を書かないこと！
 
-    uint8_t tx = 0x00;
-    for (int x = 0; x < NBYTES; x++)
-    {
-        uint8_t rv = 0;
+    uint8_t tx = 0;
+    uint8_t rv = 0;
+
+    // read [start command]
+    HAL_SPI_TransmitReceive(&SPI_Slave_Handle, &tx, &rv, 1, HAL_MAX_DELAY);
+    if(rv == 0x01){
+        PSX_ACK();
+
+        // send [id], read [request the data]
+        tx = 0x41; // 0x41=Digital, 0x23=NegCon, 0x73=Analogue Red LED, 0x53=Analogue Green LED
         HAL_SPI_TransmitReceive(&SPI_Slave_Handle, &tx, &rv, 1, HAL_MAX_DELAY);
+        if (rv == 0x42){
+            PSX_ACK();
 
-        rx_buffer[x] = rv;
-        tx = rx_buffer[x];
+            // send [here comes the data]
+            tx = 0x5A; 
+            HAL_SPI_TransmitReceive(&SPI_Slave_Handle, &tx, &rv, 1, HAL_MAX_DELAY);
+            PSX_ACK();
 
-        Serial.println(rx_buffer[x]);
-        if (rx_buffer[x] == 0xFF)
-        {
-            break;
+            // send
+            // Bit0 Bit1 Bit2 Bit3 Bit4 Bit5 Bit6 Bit7
+            // SLCT           STRT UP   RGHT DOWN LEFT
+            tx = sendData.data[0];
+            HAL_SPI_TransmitReceive(&SPI_Slave_Handle, &tx, &rv, 1, HAL_MAX_DELAY);
+            PSX_ACK();
+
+            // send
+            // Bit0 Bit1 Bit2 Bit3 Bit4 Bit5 Bit6 Bit7
+            //  L2   R2    L1  R1   /\   O    X    |_|
+            tx = sendData.data[1];
+            HAL_SPI_TransmitReceive(&SPI_Slave_Handle, &tx, &rv, 1, HAL_MAX_DELAY);
+            PSX_ACK();
+
+            Serial.println("sent!!");
         }
     }
 }
@@ -231,4 +257,32 @@ template <typename T>
 bool getBitData(T data, uint8_t i)
 {
     return (data >> i) & 0b0001;
+}
+
+void PSX_ACK(void){
+    HAL_GPIO_WritePin(GPIOB, ACK_PIN, GPIO_PIN_RESET);
+    delay_us(3);
+    HAL_GPIO_WritePin(GPIOB, ACK_PIN, GPIO_PIN_SET);
+}
+
+void delay_us(uint8_t us){
+    // 84 MHz CPU
+    // 1 clock = 1/84MHz = 11.9ns
+    // 1us / 11.9ns = 84
+
+    for (uint8_t i = 0; i < us; i++){
+        // delary(1us)
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP10;
+        NOP;
+        NOP;
+        NOP;
+        NOP;
+    }
 }
