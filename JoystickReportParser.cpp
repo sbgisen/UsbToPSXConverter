@@ -246,3 +246,8 @@ void JoystickReportParser::Parse(USBHID *hid, bool is_rpt_id __attribute__((unus
         if(ret)
                 ErrorMessage<uint8_t > (PSTR("GetReportDescr-2"), ret);
 }
+
+JoystickDescParser::EventData JoystickReportParser::getEventData()
+{
+        return eventData;
+}

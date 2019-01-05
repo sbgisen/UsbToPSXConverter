@@ -71,6 +71,8 @@ public:
         // Method should be defined here if virtual.
         virtual void Parse(USBHID *hid, bool is_rpt_id, uint8_t len, uint8_t *buf);
 
+        JoystickDescParser::EventData getEventData();
+
 private:        
         JoystickDescParser::EventData eventData;
 };

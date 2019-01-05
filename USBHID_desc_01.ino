@@ -13,6 +13,40 @@
 
 #define NBYTES 256
 
+
+static void GPIO_Init(void);
+static void SPI_Master_Init(void);
+static void SPI_Slave_Init(void);
+static void SPI_isr_func(void);
+
+template <typename T>
+static bool getBitData(T data, uint8_t i);
+
+// active low
+union PSX_EventData {
+    struct BitData
+    {
+        uint8_t select : 1;
+        uint8_t none : 2;
+        uint8_t start : 1;
+        uint8_t up : 1;
+        uint8_t right : 1;
+        uint8_t down : 1;
+        uint8_t left : 1;
+        uint8_t l2 : 1;
+        uint8_t r2 : 1;
+        uint8_t l1 : 1;
+        uint8_t r1 : 1;
+        uint8_t tri : 1;
+        uint8_t o : 1;
+        uint8_t x : 1;
+        uint8_t square : 1;
+    };
+
+    uint8_t data[2];
+    BitData bitData;
+} sendData, oldData;
+
 SPI_HandleTypeDef SPI_Handle;
 SPI_HandleTypeDef SPI_Slave_Handle;
 
@@ -23,10 +57,6 @@ USB Usb;
 HIDUniversal Hid(&Usb);
 JoystickReportParser parser;
 
-static void GPIO_Init(void);
-static void SPI_Master_Init(void);
-static void SPI_Slave_Init(void);
-static void SPI_isr_func(void);
 
 void setup()
 {
@@ -59,6 +89,45 @@ void setup()
 void loop()
 {
     Usb.Task();
+
+    JoystickDescParser::EventData receiveData = parser.getEventData();
+
+    memset(sendData.data, 0, sizeof(sendData.data));
+    sendData.bitData.tri = getBitData(receiveData.buttons, 1);
+    sendData.bitData.o = getBitData(receiveData.buttons, 3);
+    sendData.bitData.x = getBitData(receiveData.buttons, 2);
+    sendData.bitData.square = getBitData(receiveData.buttons, 0);
+    sendData.bitData.l1 = getBitData(receiveData.buttons, 4);
+    sendData.bitData.r1 = getBitData(receiveData.buttons, 5);
+    sendData.bitData.l2 = getBitData(receiveData.buttons, 6);
+    sendData.bitData.r2 = getBitData(receiveData.buttons, 7);
+    sendData.bitData.select = getBitData(receiveData.buttons, 10);
+    sendData.bitData.start = getBitData(receiveData.buttons, 11);
+
+    sendData.bitData.up = receiveData.hat == 7 || receiveData.hat == 0 || receiveData.hat == 1;
+    sendData.bitData.right = receiveData.hat == 1 || receiveData.hat == 2 || receiveData.hat == 3;
+    sendData.bitData.down = receiveData.hat == 3 || receiveData.hat == 4 || receiveData.hat == 5;
+    sendData.bitData.left = receiveData.hat == 5 || receiveData.hat == 6 || receiveData.hat == 7;
+
+    bool change = false;
+
+    // active lowなので反転
+    for (int i = 0; i < sizeof(sendData.data); i++){
+        sendData.data[i] = ~sendData.data[i];
+
+        if(sendData.data[i] != oldData.data[i]){
+            change = true;
+        }
+    }
+
+    if(change){
+        for (int i = 0; i < sizeof(sendData.data); i++){
+            PrintBin<uint8_t>(sendData.data[i], 0x80);
+            Serial.println();
+        }
+    }
+
+    oldData = sendData;
 }
 
 // SPI1 init function
@@ -158,3 +227,8 @@ void SPI_isr_func()
     }
 }
 
+template <typename T>
+bool getBitData(T data, uint8_t i)
+{
+    return (data >> i) & 0b0001;
+}
