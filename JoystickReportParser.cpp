@@ -218,30 +218,30 @@ void JoystickReportParser::Parse(USBHID *hid, bool is_rpt_id __attribute__((unus
 
         eventData = prs.getEventData();
         
-        Serial.println();
-        Serial.println("------------------------------------------");
+        // Serial.println();
+        // Serial.println("------------------------------------------");
 
-        Serial.print("X1: ");
-        PrintHex<uint8_t > (eventData.axis.X, 0x80);
-        Serial.print("\tY1: ");
-        PrintHex<uint8_t > (eventData.axis.Y, 0x80);
-        Serial.print("\tZ: ");
-        PrintHex<uint8_t > (eventData.axis.Z, 0x80);
-        Serial.print("\tRx: ");
-        PrintHex<uint8_t> (eventData.axis.Rx, 0x80);
-        Serial.println();
-        Serial.print("\tRy: ");
-        PrintHex<uint8_t > (eventData.axis.Ry, 0x80);
-        Serial.print("\tRz: ");
-        PrintHex<uint8_t> (eventData.axis.Rz, 0x80);
-        Serial.println();
+        // Serial.print("X1: ");
+        // PrintHex<uint8_t > (eventData.axis.X, 0x80);
+        // Serial.print("\tY1: ");
+        // PrintHex<uint8_t > (eventData.axis.Y, 0x80);
+        // Serial.print("\tZ: ");
+        // PrintHex<uint8_t > (eventData.axis.Z, 0x80);
+        // Serial.print("\tRx: ");
+        // PrintHex<uint8_t> (eventData.axis.Rx, 0x80);
+        // Serial.println();
+        // Serial.print("\tRy: ");
+        // PrintHex<uint8_t > (eventData.axis.Ry, 0x80);
+        // Serial.print("\tRz: ");
+        // PrintHex<uint8_t> (eventData.axis.Rz, 0x80);
+        // Serial.println();
 
-        PrintBin<uint32_t> (eventData.buttons, 0x80);
-        Serial.println();
-        E_Notify (eventData.hat, 0x80);
-        Serial.println();
+        // PrintBin<uint32_t> (eventData.buttons, 0x80);
+        // Serial.println();
+        // E_Notify (eventData.hat, 0x80);
+        // Serial.println();
 
-        Serial.println("------------------------------------------");
+        // Serial.println("------------------------------------------");
 
         if(ret)
                 ErrorMessage<uint8_t > (PSTR("GetReportDescr-2"), ret);
