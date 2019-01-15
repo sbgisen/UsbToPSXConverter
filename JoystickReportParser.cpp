@@ -212,12 +212,38 @@ void JoystickDescParser::ZeroMemory(uint8_t len, T *buf) {
 void JoystickReportParser::Parse(USBHID *hid, bool is_rpt_id __attribute__((unused)), uint8_t len, uint8_t *buf) {
         bool match = true;
 
-        JoystickDescParser prs(len, buf);
+        JoystickDescParser prs(len, buf, data_offset);
 
         uint8_t ret = hid->GetReportDescr(0, &prs);
 
         eventData = prs.getEventData();
-        
+
+        // QANBA DRONE
+        // E_Notify(PSTR("-------------------------------------\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[0], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[1], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[2], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[3], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[4], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(0x0F & buf[5], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintBin<uint8_t>(0xF0 & buf[5], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintBin<uint8_t>(buf[6], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintBin<uint8_t>(buf[7], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[8], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // PrintHex<uint8_t>(buf[9], 0x80);
+        // E_Notify(PSTR("\r\n"), 0x80);
+        // E_Notify(PSTR("-------------------------------------\r\n"), 0x80);
+
         // Serial.println();
         // Serial.println("------------------------------------------");
 
@@ -250,4 +276,8 @@ void JoystickReportParser::Parse(USBHID *hid, bool is_rpt_id __attribute__((unus
 JoystickDescParser::EventData JoystickReportParser::getEventData()
 {
         return eventData;
+}
+
+void JoystickReportParser::setDataOffset(uint8_t offset){
+        data_offset = offset;
 }

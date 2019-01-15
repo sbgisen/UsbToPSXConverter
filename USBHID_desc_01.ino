@@ -69,9 +69,12 @@ void setup()
     SPI_Master_Init();
     SPI_Slave_Init();
 
+    // ----------------------------------------------
+    // Serial
+    // ----------------------------------------------
     Serial.begin(115200);
     while (!Serial)
-        ; // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
+        ;
     E_Notify("Start\n", 0x80);
 
     // ----------------------------------------------
@@ -83,6 +86,9 @@ void setup()
     }
 
     delay(200);
+
+    // 何かデータにオフセットが入ってることがあるので
+    parser.setDataOffset(8);
 
     if (!Hid.SetReportParser(0, &parser))
     {

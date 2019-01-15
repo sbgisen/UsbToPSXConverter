@@ -50,7 +50,8 @@ private:
         uint8_t bLen; // Report length
         
         uint8_t bits_of_byte;
-protected:
+
+      protected:
         // Method should be defined here if virtual.
         virtual uint8_t ParseItem(uint8_t **pp, uint16_t *pcntdn);
 
@@ -61,8 +62,8 @@ protected:
 public:
         EventData getEventData();
 
-        JoystickDescParser(uint16_t len, uint8_t *pbuf) :
-        ReportDescParserBase(), usageIndex(0), rptId(0), useMin(0), useMax(0), fieldCount(0), pBuf(pbuf), bLen(len), bits_of_byte(8) {
+        JoystickDescParser(uint16_t len, uint8_t *pbuf, uint8_t offset = 0) :
+        ReportDescParserBase(offset), usageIndex(0), rptId(0), useMin(0), useMax(0), fieldCount(0), pBuf(pbuf), bLen(len), bits_of_byte(8) {
         };
 };
 
@@ -73,8 +74,12 @@ public:
 
         JoystickDescParser::EventData getEventData();
 
-private:        
+        void setDataOffset(uint8_t offset);
+
+      private:        
         JoystickDescParser::EventData eventData;
+
+        uint8_t data_offset = 0;
 };
 
 #endif // __HIDDESCRIPTORPARSER_H__
