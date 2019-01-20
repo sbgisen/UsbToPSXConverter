@@ -1,9 +1,15 @@
 #include <usbhid.h>
 #include <hiduniversal.h>
-
 #include <SPI.h>
 
+#include <vector>
+
 #include "JoystickReportParser.h"
+
+// #include "sd_diskio_spi.h"
+#include <STM32SD.h>
+
+#define SD_DETECT_PIN SD_DETECT_NONE
 
 // SPI2
 #define MOSI_PIN GPIO_PIN_15
@@ -53,12 +59,84 @@ union PSX_EventData {
     BitData bitData;
 } sendData, oldData;
 
+enum Key{
+    KEY_O = 0,
+    KEY_X,
+    KEY_TRI,
+    KEY_SQUARE,
+    KEY_L1,
+    KEY_R1,
+    KEY_L2,
+    KEY_R2,
+    KEY_SELECT,
+    KEY_START,
+    Cnt
+};
+
 SPI_HandleTypeDef SPI_Handle;
 SPI_HandleTypeDef SPI_Slave_Handle;
 
 USB Usb;
 HIDUniversal Hid(&Usb);
 JoystickReportParser parser;
+
+File myFile;
+
+uint8_t keyTable[(uint8_t)Key::Cnt] = {
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    10,
+    11
+};
+
+std::vector<String> split(const String &input, char delimiter)
+{
+    std::vector<String> result;
+    String tmp;
+    for (int i = 0; i < input.length(); i++)
+    {
+        char c = input.charAt(i);
+        if (c == delimiter)
+        {
+            tmp.trim();
+            result.push_back(tmp);
+            
+            tmp = "";
+        }
+        else
+        {
+            tmp += c;
+        }
+    }
+    result.push_back(tmp);
+
+    return result;
+}
+
+String readLine(File file)
+{
+  String line = "";
+  while (myFile.available())
+  {
+    char c = myFile.read();
+    if (c == '\n' || c == '\r')
+    {
+      break;
+    }
+    else
+    {
+      line += c;
+    }
+  }
+
+  return line;
+}
 
 void setup()
 {
@@ -77,6 +155,75 @@ void setup()
         ;
     E_Notify("Start\n", 0x80);
 
+
+    // ----------------------------------------------
+    // keyconfig
+    // ----------------------------------------------
+
+    Serial.print("Initializing SD card...");
+    while (SD.begin(SD_DETECT_PIN) != TRUE){
+        delay(10);
+    }
+    Serial.println("initialization done.");
+
+    // read file
+    uint8_t data_offset = 0;
+    myFile = SD.open("keyconfig.ini");
+    if (myFile) {
+        Serial.println("keyconfig.ini");
+
+        while (myFile.available()){
+        String line = readLine(myFile);
+
+        auto s = split(line, '=');
+        if (s.size() == 2){
+            if (s[0] == "O"){
+                keyTable[Key::KEY_O] = s[1].toInt();
+            }
+            else if (s[0] == "X"){
+                keyTable[Key::KEY_X] = s[1].toInt();
+            }
+            else if (s[0] == "TRI"){
+                keyTable[Key::KEY_TRI] = s[1].toInt();
+            }
+            else if (s[0] == "SQUARE"){
+                keyTable[Key::KEY_SQUARE] = s[1].toInt();
+            }
+            else if (s[0] == "L1"){
+                keyTable[Key::KEY_L1] = s[1].toInt();
+            }
+            else if (s[0] == "R1"){
+                keyTable[Key::KEY_R1] = s[1].toInt();
+            }
+            else if (s[0] == "L2"){
+                keyTable[Key::KEY_L2] = s[1].toInt();
+            }
+            else if (s[0] == "R2"){
+                keyTable[Key::KEY_R2] = s[1].toInt();
+            }
+            else if (s[0] == "SELECT"){
+                keyTable[Key::KEY_SELECT] = s[1].toInt();
+            }
+            else if (s[0] == "START"){
+                keyTable[Key::KEY_START] = s[1].toInt();
+            }
+            
+            else if (s[0] == "OFFSET"){
+                data_offset = s[1].toInt();
+            }
+
+            Serial.print(s[0]);
+            Serial.print(" = ");
+            Serial.println(s[1].toInt());
+        }
+        }
+        
+        myFile.close();
+    }
+    else {
+        Serial.println("error opening");
+    }
+
     // ----------------------------------------------
     // USB
     // ----------------------------------------------
@@ -88,7 +235,7 @@ void setup()
     delay(200);
 
     // 何かデータにオフセットが入ってることがあるので
-    parser.setDataOffset(8);
+    parser.setDataOffset(data_offset);
 
     if (!Hid.SetReportParser(0, &parser))
     {
@@ -103,16 +250,16 @@ void loop()
     JoystickDescParser::EventData receiveData = parser.getEventData();
     PSX_EventData tmp = {0};
 
-    tmp.bitData.tri = getBitData(receiveData.buttons, 1);
-    tmp.bitData.o = getBitData(receiveData.buttons, 3);
-    tmp.bitData.x = getBitData(receiveData.buttons, 2);
-    tmp.bitData.square = getBitData(receiveData.buttons, 0);
-    tmp.bitData.l1 = getBitData(receiveData.buttons, 4);
-    tmp.bitData.r1 = getBitData(receiveData.buttons, 5);
-    tmp.bitData.l2 = getBitData(receiveData.buttons, 6);
-    tmp.bitData.r2 = getBitData(receiveData.buttons, 7);
-    tmp.bitData.select = getBitData(receiveData.buttons, 10);
-    tmp.bitData.start = getBitData(receiveData.buttons, 11);
+    tmp.bitData.tri = getBitData(receiveData.buttons, keyTable[Key::KEY_TRI]);
+    tmp.bitData.o = getBitData(receiveData.buttons, keyTable[Key::KEY_O]);
+    tmp.bitData.x = getBitData(receiveData.buttons, keyTable[Key::KEY_X]);
+    tmp.bitData.square = getBitData(receiveData.buttons, keyTable[Key::KEY_SQUARE]);
+    tmp.bitData.l1 = getBitData(receiveData.buttons, keyTable[Key::KEY_L1]);
+    tmp.bitData.r1 = getBitData(receiveData.buttons, keyTable[Key::KEY_R1]);
+    tmp.bitData.l2 = getBitData(receiveData.buttons, keyTable[Key::KEY_L2]);
+    tmp.bitData.r2 = getBitData(receiveData.buttons, keyTable[Key::KEY_R2]);
+    tmp.bitData.select = getBitData(receiveData.buttons, keyTable[Key::KEY_SELECT]);
+    tmp.bitData.start = getBitData(receiveData.buttons, keyTable[Key::KEY_START]);
 
     tmp.bitData.up = receiveData.hat == 7 || receiveData.hat == 0 || receiveData.hat == 1;
     tmp.bitData.right = receiveData.hat == 1 || receiveData.hat == 2 || receiveData.hat == 3;
