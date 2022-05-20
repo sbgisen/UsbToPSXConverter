@@ -7,8 +7,8 @@
 
 #include "MySPI_HAL.h"
 
-#include "stm32F4xx.h"
-#include "stm32F4xx_hal.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 #include <stdint.h>
 
 
