@@ -6,8 +6,6 @@
 
 #include "JoystickReportParser.h"
 
-// #include "sd_diskio_spi.h"
-#include <STM32SD.h>
 
 #define SD_DETECT_PIN SD_DETECT_NONE
 
@@ -80,7 +78,6 @@ USB Usb;
 HIDUniversal Hid(&Usb);
 JoystickReportParser parser;
 
-File myFile;
 
 uint8_t keyTable[(uint8_t)Key::Cnt] = {
     0,
@@ -119,24 +116,6 @@ std::vector<String> split(const String &input, char delimiter)
     return result;
 }
 
-String readLine(File file)
-{
-  String line = "";
-  while (myFile.available())
-  {
-    char c = myFile.read();
-    if (c == '\n' || c == '\r')
-    {
-      break;
-    }
-    else
-    {
-      line += c;
-    }
-  }
-
-  return line;
-}
 
 void setup()
 {
@@ -160,69 +139,6 @@ void setup()
     // keyconfig
     // ----------------------------------------------
 
-    Serial.print("Initializing SD card...");
-    while (SD.begin(SD_DETECT_PIN) != TRUE){
-        delay(10);
-    }
-    Serial.println("initialization done.");
-
-    // read file
-    uint8_t data_offset = 0;
-    myFile = SD.open("keyconfig.ini");
-    if (myFile) {
-        Serial.println("keyconfig.ini");
-
-        while (myFile.available()){
-        String line = readLine(myFile);
-
-        auto s = split(line, '=');
-        if (s.size() == 2){
-            if (s[0] == "O"){
-                keyTable[Key::KEY_O] = s[1].toInt();
-            }
-            else if (s[0] == "X"){
-                keyTable[Key::KEY_X] = s[1].toInt();
-            }
-            else if (s[0] == "TRI"){
-                keyTable[Key::KEY_TRI] = s[1].toInt();
-            }
-            else if (s[0] == "SQUARE"){
-                keyTable[Key::KEY_SQUARE] = s[1].toInt();
-            }
-            else if (s[0] == "L1"){
-                keyTable[Key::KEY_L1] = s[1].toInt();
-            }
-            else if (s[0] == "R1"){
-                keyTable[Key::KEY_R1] = s[1].toInt();
-            }
-            else if (s[0] == "L2"){
-                keyTable[Key::KEY_L2] = s[1].toInt();
-            }
-            else if (s[0] == "R2"){
-                keyTable[Key::KEY_R2] = s[1].toInt();
-            }
-            else if (s[0] == "SELECT"){
-                keyTable[Key::KEY_SELECT] = s[1].toInt();
-            }
-            else if (s[0] == "START"){
-                keyTable[Key::KEY_START] = s[1].toInt();
-            }
-            
-            else if (s[0] == "OFFSET"){
-                data_offset = s[1].toInt();
-            }
-
-            Serial.print(s[0]);
-            Serial.print(" = ");
-            Serial.println(s[1].toInt());
-        }
-        }
-        
-        myFile.close();
-    }
-    else {
-        Serial.println("error opening");
-    }
 
     // ----------------------------------------------
     // USB
@@ -250,8 +166,8 @@ void loop()
     JoystickDescParser::EventData receiveData = parser.getEventData();
     PSX_EventData tmp = {0};
 
-    tmp.bitData.tri = getBitData(receiveData.buttons, keyTable[Key::KEY_TRI]);
-    tmp.bitData.o = getBitData(receiveData.buttons, keyTable[Key::KEY_O]);
+    tmp.bitData.tri = 0;//getBitData(receiveData.buttons, keyTable[Key::KEY_TRI]);
+    tmp.bitData.o = 0;//getBitData(receiveData.buttons, keyTable[Key::KEY_O]);
     tmp.bitData.x = getBitData(receiveData.buttons, keyTable[Key::KEY_X]);
     tmp.bitData.square = getBitData(receiveData.buttons, keyTable[Key::KEY_SQUARE]);
     tmp.bitData.l1 = getBitData(receiveData.buttons, keyTable[Key::KEY_L1]);
